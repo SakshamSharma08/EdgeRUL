@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: edgerul-cockpit
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production

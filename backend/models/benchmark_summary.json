@@ -1,0 +1,158 @@
+{
+  "dataset": "NASA C-MAPSS (FD001)",
+  "window_size": 30,
+  "input_dimensions": 560,
+  "active_features": [
+    "os1",
+    "os2",
+    "s2",
+    "s3",
+    "s4",
+    "s7",
+    "s8",
+    "s9",
+    "s11",
+    "s12",
+    "s13",
+    "s14",
+    "s15",
+    "s17",
+    "s20",
+    "s21"
+  ],
+  "feature_importances": {
+    "s3": 0.2923,
+    "s11": 0.1506,
+    "s17": 0.1355,
+    "s2": 0.129,
+    "s9": 0.0547,
+    "s4": 0.039,
+    "s12": 0.0349,
+    "s14": 0.0323,
+    "s15": 0.0233,
+    "s7": 0.0231,
+    "s8": 0.0231,
+    "s20": 0.02,
+    "s13": 0.0158,
+    "s21": 0.0154,
+    "os1": 0.0064,
+    "os2": 0.0046
+  },
+  "metrics": {
+    "random_forest": {
+      "rmse": 14.283,
+      "mae": 10.102,
+      "r2": 0.8819,
+      "nasa_score": 324.64
+    },
+    "xgboost": {
+      "rmse": 13.427,
+      "mae": 9.95,
+      "r2": 0.8956,
+      "nasa_score": 268.18
+    }
+  },
+  "edge_benchmark": {
+    "format": "ONNX (OpSet 12)",
+    "model_size_kb": 422.7,
+    "inference_provider": "CPUExecutionProvider",
+    "latency_ms": {
+      "mean": 0.014,
+      "p50": 0.014,
+      "p95": 0.016,
+      "p99": 0.035
+    }
+  },
+  "test_engine_samples": [
+    {
+      "engine_id": 1,
+      "true_rul": 112.0,
+      "pred_rul": 108.5,
+      "error": -3.5
+    },
+    {
+      "engine_id": 2,
+      "true_rul": 98.0,
+      "pred_rul": 121.8,
+      "error": 23.8
+    },
+    {
+      "engine_id": 3,
+      "true_rul": 69.0,
+      "pred_rul": 38.2,
+      "error": -30.8
+    },
+    {
+      "engine_id": 4,
+      "true_rul": 82.0,
+      "pred_rul": 97.3,
+      "error": 15.3
+    },
+    {
+      "engine_id": 5,
+      "true_rul": 91.0,
+      "pred_rul": 97.4,
+      "error": 6.4
+    },
+    {
+      "engine_id": 6,
+      "true_rul": 93.0,
+      "pred_rul": 94.7,
+      "error": 1.7
+    },
+    {
+      "engine_id": 7,
+      "true_rul": 91.0,
+      "pred_rul": 106.2,
+      "error": 15.2
+    },
+    {
+      "engine_id": 8,
+      "true_rul": 95.0,
+      "pred_rul": 108.5,
+      "error": 13.5
+    },
+    {
+      "engine_id": 9,
+      "true_rul": 111.0,
+      "pred_rul": 112.1,
+      "error": 1.1
+    },
+    {
+      "engine_id": 10,
+      "true_rul": 96.0,
+      "pred_rul": 87.9,
+      "error": -8.1
+    },
+    {
+      "engine_id": 11,
+      "true_rul": 97.0,
+      "pred_rul": 94.1,
+      "error": -2.9
+    },
+    {
+      "engine_id": 12,
+      "true_rul": 124.0,
+      "pred_rul": 103.1,
+      "error": -20.9
+    },
+    {
+      "engine_id": 13,
+      "true_rul": 95.0,
+      "pred_rul": 84.4,
+      "error": -10.6
+    },
+    {
+      "engine_id": 14,
+      "true_rul": 107.0,
+      "pred_rul": 114.6,
+      "error": 7.6
+    },
+    {
+      "engine_id": 15,
+      "true_rul": 83.0,
+      "pred_rul": 100.2,
+      "error": 17.2
+    }
+  ]
+}
