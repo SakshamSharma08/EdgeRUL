@@ -33,10 +33,10 @@ export default function Navbar({ isWsConnected, onOpenBenchmark, onExportCsv, ac
         {/* Live System Telemetry Status Badges */}
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs font-mono">
-            <Radio className={`w-3.5 h-3.5 ${isWsConnected ? 'text-emerald-400 animate-pulse' : 'text-red-400'}`} />
+            <Radio className={`w-3.5 h-3.5 ${isWsConnected ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
             <span className="text-slate-400">Gateway:</span>
-            <span className={`font-bold ${isWsConnected ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isWsConnected ? 'LIVE WS' : 'CONNECTING'}
+            <span className={`font-bold ${isWsConnected ? 'text-emerald-400' : 'text-cyan-300'}`}>
+              {isWsConnected ? 'LIVE WS' : 'EDGE SIMULATOR'}
             </span>
           </div>
 

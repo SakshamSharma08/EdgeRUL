@@ -2,6 +2,12 @@
 > **Tata Technologies InnoVent-27 Hackathon Project**  
 > *Low-Latency Edge Inference, Time-Series Feature Engineering, and Real-Time Aeronautical Telemetry Monitoring on NASA C-MAPSS*
 
+[![Live Cockpit HUD Demo](https://img.shields.io/badge/Live_Cockpit_HUD-Online-00f0ff?style=for-the-badge&logo=react&logoColor=black)](https://sakshamsharma08.github.io/EdgeRUL/)
+[![GitHub Actions CI/CD](https://img.shields.io/github/actions/workflow/status/SakshamSharma08/EdgeRUL/deploy-pages.yml?label=Pages%20Deploy&style=for-the-badge)](https://github.com/SakshamSharma08/EdgeRUL/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+🔗 **Live Avionics HUD URL:** **[https://sakshamsharma08.github.io/EdgeRUL/](https://sakshamsharma08.github.io/EdgeRUL/)**
+
 ---
 
 ## 🚀 Key Highlights & Differentiators

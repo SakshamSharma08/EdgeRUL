@@ -35,18 +35,61 @@ const getWsUrl = () => {
 const API_BASE = getApiBase();
 const WS_URL = getWsUrl();
 
+const INITIAL_ENGINES = [
+  { id: '1', cycleCount: 84, lastRul: 98, healthIndex: 89, status: 'HEALTHY', model: 'CFM LEAP-1B', lastUpdate: Date.now() },
+  { id: '2', cycleCount: 132, lastRul: 62, healthIndex: 68, status: 'CAUTION', model: 'GE GEnx-1B', lastUpdate: Date.now() },
+  { id: '3', cycleCount: 178, lastRul: 28, healthIndex: 32, status: 'CRITICAL', model: 'Trent XWB-97', lastUpdate: Date.now() },
+  { id: '4', cycleCount: 45, lastRul: 125, healthIndex: 99, status: 'HEALTHY', model: 'PW1100G', lastUpdate: Date.now() }
+];
+
+const DEFAULT_SENSORS = {
+  os1: { value: 0.0023 },
+  os2: { value: 0.0003 },
+  s2: { value: 642.3 },
+  s3: { value: 1588.6 },
+  s4: { value: 1404.2 },
+  s7: { value: 553.8 },
+  s8: { value: 2388.1 },
+  s9: { value: 9054.6 },
+  s11: { value: 47.4 },
+  s12: { value: 521.9 },
+  s13: { value: 2388.1 },
+  s14: { value: 8132.8 },
+  s15: { value: 8.44 },
+  s17: { value: 392 },
+  s20: { value: 38.8 },
+  s21: { value: 23.3 }
+};
+
+const generateInitialHistory = (startCycle = 65, endCycle = 84) => {
+  const hist = [];
+  for (let c = startCycle; c <= endCycle; c++) {
+    const rul = Math.max(0, 125 - (c - 50) * 0.8);
+    hist.push({
+      cycle: c,
+      rul: Math.round(rul * 10) / 10,
+      healthIndex: Math.round((rul / 125) * 100),
+      status: rul > 65 ? 'HEALTHY' : rul > 30 ? 'CAUTION' : 'CRITICAL',
+      latencyMs: Math.round((0.015 + Math.random() * 0.02) * 1000) / 1000,
+      timestamp: Date.now() - (endCycle - c) * 3000
+    });
+  }
+  return hist;
+};
+
 export default function App() {
   const [isWsConnected, setIsWsConnected] = useState(false);
   const [selectedEngineId, setSelectedEngineId] = useState(1);
-  const [engines, setEngines] = useState([]);
+  const [engines, setEngines] = useState(INITIAL_ENGINES);
   const [currentEngineDetail, setCurrentEngineDetail] = useState({
     id: 1,
-    cycleCount: 1,
-    lastRul: 125,
-    healthIndex: 100,
+    cycleCount: 84,
+    lastRul: 98,
+    healthIndex: 89,
     status: 'HEALTHY',
-    history: [],
-    currentSensors: {}
+    history: generateInitialHistory(65, 84),
+    currentSensors: DEFAULT_SENSORS,
+    lastLatencyMs: 0.018
   });
 
   const [alerts, setAlerts] = useState([]);
@@ -195,10 +238,87 @@ export default function App() {
     };
   }, [selectedEngineId]);
 
+  // Standalone Client Simulation Loop (Active when WebSocket is disconnected and user starts simulation)
+  useEffect(() => {
+    if (!isSimRunning || isWsConnected) return;
+
+    const timer = setInterval(() => {
+      setCurrentEngineDetail(prev => {
+        const nextCycle = (prev.cycleCount || 84) + 1;
+        const decayRate = 0.35 + Math.random() * 0.3;
+        const nextRul = Math.max(0, Math.round(((prev.lastRul || 98) - decayRate) * 10) / 10);
+        const healthIndex = Math.max(0, Math.min(100, Math.round((nextRul / 125) * 100)));
+        const status = nextRul > 65 ? 'HEALTHY' : nextRul > 30 ? 'CAUTION' : 'CRITICAL';
+
+        // Dynamic realistic sensor readings with minor operational jitter
+        const s = prev.currentSensors || DEFAULT_SENSORS;
+        const s3Val = Math.round((1588.6 + ((nextCycle - 84) * 0.15) + (Math.random() - 0.5) * 1.5) * 10) / 10;
+        const s7Val = Math.round((553.8 - ((nextCycle - 84) * 0.05) + (Math.random() - 0.5) * 0.4) * 10) / 10;
+        const updatedSensors = {
+          ...s,
+          s3: { value: s3Val },
+          s7: { value: s7Val },
+          s8: { value: Math.round((2388.1 + (Math.random() - 0.5) * 4) * 10) / 10 },
+          s9: { value: Math.round((9054.6 + (Math.random() - 0.5) * 6) * 10) / 10 },
+          s11: { value: Math.round((47.4 + ((nextCycle - 84) * 0.01) + (Math.random() - 0.5) * 0.1) * 10) / 10 }
+        };
+
+        const newPoint = {
+          cycle: nextCycle,
+          rul: nextRul,
+          healthIndex,
+          status,
+          latencyMs: Math.round((0.012 + Math.random() * 0.018) * 1000) / 1000,
+          timestamp: Date.now()
+        };
+
+        return {
+          ...prev,
+          cycleCount: nextCycle,
+          lastRul: nextRul,
+          healthIndex,
+          status,
+          currentSensors: updatedSensors,
+          history: [...(prev.history || []), newPoint].slice(-100),
+          lastLatencyMs: newPoint.latencyMs
+        };
+      });
+
+      // Update fleet monitor for selected engine
+      setEngines(prev => prev.map(e => {
+        if (String(e.id) === String(selectedEngineId)) {
+          return {
+            ...e,
+            cycleCount: (e.cycleCount || 84) + 1,
+            lastUpdate: Date.now()
+          };
+        }
+        return e;
+      }));
+    }, simSpeed);
+
+    return () => clearInterval(timer);
+  }, [isSimRunning, isWsConnected, simSpeed, selectedEngineId]);
+
   // Handle Engine Selection
   const handleSelectEngine = (id) => {
     setSelectedEngineId(id);
-    fetchEngineDetail(id);
+    if (isWsConnected) {
+      fetchEngineDetail(id);
+    } else {
+      const match = engines.find(e => String(e.id) === String(id));
+      if (match) {
+        setCurrentEngineDetail(prev => ({
+          ...prev,
+          id: match.id,
+          cycleCount: match.cycleCount,
+          lastRul: match.lastRul,
+          healthIndex: match.healthIndex,
+          status: match.status,
+          history: generateInitialHistory(Math.max(1, match.cycleCount - 20), match.cycleCount)
+        }));
+      }
+    }
   };
 
   // Simulation Controls
@@ -206,35 +326,64 @@ export default function App() {
     const nextState = !isSimRunning;
     setIsSimRunning(nextState);
 
-    const endpoint = nextState ? 'start' : 'stop';
-    await fetch(`${API_BASE}/simulation/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intervalMs: simSpeed })
-    });
+    if (isWsConnected) {
+      try {
+        const endpoint = nextState ? 'start' : 'stop';
+        await fetch(`${API_BASE}/simulation/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intervalMs: simSpeed })
+        });
+      } catch (e) {
+        console.warn('Backend simulation toggle error:', e);
+      }
+    }
   };
 
   const handleSpeedChange = async (speed) => {
     setSimSpeed(speed);
-    if (isSimRunning) {
-      await fetch(`${API_BASE}/simulation/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intervalMs: speed })
-      });
+    if (isSimRunning && isWsConnected) {
+      try {
+        await fetch(`${API_BASE}/simulation/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intervalMs: speed })
+        });
+      } catch (e) {
+        console.warn('Backend speed change error:', e);
+      }
     }
   };
 
   const handleReset = async () => {
     setIsSimRunning(false);
-    await fetch(`${API_BASE}/simulation/reset`, { method: 'POST' });
     setAlerts([]);
-    fetchEngineDetail(selectedEngineId);
+
+    if (isWsConnected) {
+      try {
+        await fetch(`${API_BASE}/simulation/reset`, { method: 'POST' });
+        fetchEngineDetail(selectedEngineId);
+      } catch (e) {
+        console.warn('Backend reset error:', e);
+      }
+    } else {
+      const match = INITIAL_ENGINES.find(e => String(e.id) === String(selectedEngineId)) || INITIAL_ENGINES[0];
+      setEngines(INITIAL_ENGINES);
+      setCurrentEngineDetail({
+        id: match.id,
+        cycleCount: match.cycleCount,
+        lastRul: match.lastRul,
+        healthIndex: match.healthIndex,
+        status: match.status,
+        history: generateInitialHistory(Math.max(1, match.cycleCount - 20), match.cycleCount),
+        currentSensors: DEFAULT_SENSORS,
+        lastLatencyMs: 0.015
+      });
+    }
   };
 
   // Inject High Pressure Compressor (HPC) Thermal Anomaly
   const handleInjectAnomaly = async () => {
-    // Inject severely degraded HPC sensor measurements
     const anomalySensors = {
       os1: 0.001,
       os2: 0.0002,
@@ -254,18 +403,63 @@ export default function App() {
       s21: 22.8
     };
 
-    const nextCycle = (currentEngineDetail.cycleCount || 50) + 1;
-    await fetch(`${API_BASE}/predict/single`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        engineId: selectedEngineId,
-        sensors: anomalySensors,
-        cycle: nextCycle
-      })
+    if (isWsConnected) {
+      try {
+        const nextCycle = (currentEngineDetail.cycleCount || 50) + 1;
+        await fetch(`${API_BASE}/predict/single`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            engineId: selectedEngineId,
+            sensors: anomalySensors,
+            cycle: nextCycle
+          })
+        });
+        fetchEngineDetail(selectedEngineId);
+        return;
+      } catch (e) {
+        console.warn('Backend prediction error, applying client-side anomaly:', e);
+      }
+    }
+
+    // Standalone Anomaly Simulation
+    const nextCycle = (currentEngineDetail.cycleCount || 84) + 1;
+    const formattedAnomalySensors = {};
+    Object.entries(anomalySensors).forEach(([k, v]) => {
+      formattedAnomalySensors[k] = { value: v };
     });
 
-    fetchEngineDetail(selectedEngineId);
+    const anomalyPoint = {
+      cycle: nextCycle,
+      rul: 14.2,
+      healthIndex: 11,
+      status: 'CRITICAL',
+      latencyMs: 0.019,
+      timestamp: Date.now()
+    };
+
+    setCurrentEngineDetail(prev => ({
+      ...prev,
+      cycleCount: nextCycle,
+      lastRul: 14.2,
+      healthIndex: 11,
+      status: 'CRITICAL',
+      currentSensors: formattedAnomalySensors,
+      history: [...(prev.history || []), anomalyPoint].slice(-100),
+      lastLatencyMs: 0.019
+    }));
+
+    setAlerts(prev => [
+      {
+        id: `alert-${Date.now()}`,
+        severity: 'CRITICAL',
+        title: 'HPC THERMAL RUNAWAY ANOMALY DETECTED',
+        message: `Engine #${selectedEngineId} HPC outlet temperature spiked to 1618.5°R with pressure drop to 546 psia. Projected RUL reduced to 14.2 cycles. Immediate maintenance action required!`,
+        timestamp: new Date().toLocaleTimeString(),
+        engineId: selectedEngineId
+      },
+      ...prev
+    ].slice(0, 20));
   };
 
   const handleDismissAlert = (alertId) => {
